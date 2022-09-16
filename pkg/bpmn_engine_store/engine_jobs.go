@@ -1,24 +1,67 @@
 package bpmn_engine_store
 
-import "time"
+import (
+	"context"
+	"fmt"
+	"github.com/nitram509/lib-bpmn-engine/pkg/spec/BPMN20"
+	"github.com/nitram509/lib-bpmn-engine/pkg/spec/BPMN20/activity"
+	"github.com/nitram509/lib-bpmn-engine/pkg/spec/BPMN20/process_instance"
+)
 
-type ActivatedJob struct {
-	//processInstanceInfo *ProcessInstanceInfo
-	completeHandler func()
-	failHandler     func(reason string)
+func (state *BpmnEngineState) handleServiceTask(ctx context.Context, instance IProcessInstanceInfo, element BPMN20.TaskElement) bool {
+	id := element.GetId()
+	jobs, err := state.GetStore().FindJobs(ctx, instance.GetInstanceKey())
+	if err != nil {
+		jobs = []IJob{}
+	}
+	job := state.findOrCreateJob(ctx, jobs, id, instance)
+	fmt.Println("findOrCreateJob activatedJob", nil != state.handlers && nil != state.handlers[id])
+	if nil != state.handlers && nil != state.handlers[id] {
+		err := state.GetStore().SetJobState(ctx, instance.GetInstanceKey(), job.GetElementInstanceKey(), activity.Active, "")
 
-	// the key, a unique identifier for the job
-	Key int64
-	// the job's process instance key
-	ProcessInstanceKey int64
-	// the bpmn process ID of the job process definition
-	BpmnProcessId string
-	// the version of the job process definition
-	ProcessDefinitionVersion int32
-	// the key of the job process definition
-	ProcessDefinitionKey int64
-	// the associated task element ID
-	ElementId string
-	// when the job was created
-	CreatedAt time.Time
+		if err != nil {
+			return false
+		}
+		activatedJob := state.GetStore().CreateActivatedJob(state, job)
+
+		// TODO here is able to use transaction
+		if err := evaluateVariableMapping(ctx, instance, element.GetInputMapping()); err != nil {
+			if err := job.SetState(ctx, activity.Failed, ""); err != nil {
+				return false
+			}
+			if err := instance.SetState(ctx, process_instance.FAILED); err != nil {
+				return false
+			}
+			return false
+		}
+		state.handlers[id](activatedJob)
+		if err := evaluateVariableMapping(ctx, instance, element.GetOutputMapping()); err != nil {
+			if err := job.SetState(ctx, activity.Failed, ""); err != nil {
+				return false
+			}
+			if err := instance.SetState(ctx, process_instance.FAILED); err != nil {
+				return false
+			}
+			return false
+		}
+	}
+
+	jobState, err := job.GetState(ctx)
+	if err != nil {
+		return false
+	}
+	return jobState == activity.Completed
+}
+
+func (state *BpmnEngineState) findOrCreateJob(ctx context.Context, jobs []IJob, id string, instance IProcessInstanceInfo) IJob {
+	for _, job := range jobs {
+		if job.GetElementId() == id {
+			return job
+		}
+	}
+	job, err := instance.CreateJob(ctx, id)
+	if err != nil {
+		return nil
+	}
+	return job
 }

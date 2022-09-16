@@ -1,4 +1,4 @@
-package bpmn_engine
+package bpmn_engine_store
 
 import (
 	"github.com/bwmarrin/snowflake"
@@ -7,6 +7,10 @@ import (
 )
 
 func (state *BpmnEngineState) generateKey() int64 {
+	return state.snowflake.Generate().Int64()
+}
+
+func (state *BpmnEngineState) GenerateKey() int64 {
 	return state.snowflake.Generate().Int64()
 }
 
