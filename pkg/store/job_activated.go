@@ -4,11 +4,25 @@ import (
 	"context"
 	"github.com/nitram509/lib-bpmn-engine/pkg/bpmn_engine_store"
 	"github.com/nitram509/lib-bpmn-engine/pkg/spec/BPMN20/activity"
+	"time"
 )
 
 // ActivatedJob did not save to db
 type ActivatedJob struct {
-	job bpmn_engine_store.IJob
+	job      bpmn_engine_store.IJob
+	createAt time.Time
+}
+
+func (aj *ActivatedJob) GetProcessInstanceKey() bpmn_engine_store.IProcessInstanceKey {
+	return aj.job.GetProcessInstanceKey()
+}
+
+func (aj *ActivatedJob) GetState(ctx context.Context) (activity.LifecycleState, error) {
+	return aj.job.GetState(ctx)
+}
+
+func (aj *ActivatedJob) GetCreatedAt() time.Time {
+	return aj.createAt
 }
 
 func (aj *ActivatedJob) SetVariable(ctx context.Context, key string, value interface{}) error {

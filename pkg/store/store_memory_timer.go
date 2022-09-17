@@ -17,6 +17,9 @@ func (store *EngineMemoryStore) CreateTimer(
 	timerKey bpmn_engine_store.ITimerKey,
 	ice BPMN20.TIntermediateCatchEvent,
 ) (bpmn_engine_store.ITimer, error) {
+	if store.timers[processInstanceKey] == nil {
+		store.timers[processInstanceKey] = map[bpmn_engine_store.ITimerKey]*Timer{}
+	}
 	now := time.Now().Local()
 	durationVal, err := findDurationValue(ice)
 	if err != nil {

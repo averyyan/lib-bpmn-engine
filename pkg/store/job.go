@@ -18,6 +18,10 @@ type job struct {
 	JobKey             int64
 }
 
+func (job *job) GetProcessInstanceKey() bpmn_engine_store.IProcessInstanceKey {
+	return job.ProcessInstanceKey
+}
+
 func (job *job) SetVariable(ctx context.Context, key string, value interface{}) error {
 	return job.engineStore.SetProcessInstanceVariable(ctx, job.ProcessInstanceKey, key, value)
 }

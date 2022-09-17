@@ -106,6 +106,8 @@ type ICatchEvent interface {
 type IJob interface {
 	GetElementId() string
 
+	GetProcessInstanceKey() IProcessInstanceKey
+
 	GetVariable(ctx context.Context, key string) (interface{}, error)
 
 	SetVariable(ctx context.Context, key string, value interface{}) error
@@ -123,7 +125,7 @@ type IActivatedJob interface {
 	//GetKey() int64
 
 	// GetProcessInstanceKey the job's process instance key
-	//GetProcessInstanceKey() int64
+	GetProcessInstanceKey() IProcessInstanceKey
 
 	// GetBpmnProcessId Retrieve id of the job process definition
 	//GetBpmnProcessId() string
@@ -131,6 +133,9 @@ type IActivatedJob interface {
 	// GetProcessDefinitionVersion Retrieve version of the job process definition
 	//GetProcessDefinitionVersion() int32
 
+	GetState(ctx context.Context) (activity.LifecycleState, error)
+
+	GetCreatedAt() time.Time
 	// GetProcessDefinitionKey Retrieve key of the job process definition
 	//GetProcessDefinitionKey() int64
 

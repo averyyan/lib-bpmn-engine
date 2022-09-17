@@ -100,7 +100,6 @@ func (state *BpmnEngineState) run(ctx context.Context, instance IProcessInstance
 			return err
 		}
 	case process_instance.ACTIVE:
-
 		userTasks := findActiveUserTasksForContinuation(ctx, instance)
 		for _, userTask := range userTasks {
 			queue = append(queue, queueElement{
@@ -335,10 +334,7 @@ func findIntermediateCatchEventsForContinuation(ctx context.Context, instance IP
 	for _, ice := range process.GetDefinitions().Process.IntermediateCatchEvent {
 		messageRef2IntermediateCatchEventMapping[ice.MessageEventDefinition.MessageRef] = ice
 	}
-	caughtEvents, err := instance.FindCatchEvents(ctx)
-	if err != nil {
-		return nil
-	}
+	caughtEvents, _ := instance.FindCatchEvents(ctx)
 	for _, caughtEvent := range caughtEvents {
 		consumed, err := caughtEvent.GetConsumed(ctx)
 		if err != nil {
