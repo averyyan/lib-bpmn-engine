@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+var EvaluateExpression = evaluateExpression
+
 func evaluateExpression(expression string, variableContext map[string]interface{}) (interface{}, error) {
 	expression = strings.TrimSpace(expression)
 	expression = strings.TrimPrefix(expression, "=")

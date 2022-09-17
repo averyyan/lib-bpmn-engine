@@ -2,27 +2,22 @@ package bpmn_engine_store
 
 import (
 	"context"
-	"fmt"
 	"github.com/nitram509/lib-bpmn-engine/pkg/spec/BPMN20"
 	"github.com/nitram509/lib-bpmn-engine/pkg/spec/BPMN20/activity"
 	"github.com/nitram509/lib-bpmn-engine/pkg/spec/BPMN20/process_instance"
 )
 
+// TODO here need throw a err to use transaction
 func (state *BpmnEngineState) handleServiceTask(ctx context.Context, instance IProcessInstanceInfo, element BPMN20.TaskElement) bool {
 	id := element.GetId()
-	jobs, err := state.GetStore().FindJobs(ctx, instance.GetInstanceKey())
-	if err != nil {
-		jobs = []IJob{}
-	}
-	job := state.findOrCreateJob(ctx, jobs, id, instance)
-	fmt.Println("findOrCreateJob activatedJob", nil != state.handlers && nil != state.handlers[id])
+	job := findOrCreateJob(ctx, instance, id)
 	if nil != state.handlers && nil != state.handlers[id] {
-		err := state.GetStore().SetJobState(ctx, instance.GetInstanceKey(), job.GetElementInstanceKey(), activity.Active, "")
+		err := instance.SetJobState(ctx, job.GetElementInstanceKey(), activity.Active, "")
 
 		if err != nil {
 			return false
 		}
-		activatedJob := state.GetStore().CreateActivatedJob(state, job)
+		activatedJob := instance.CreateActivatedJob(job)
 
 		// TODO here is able to use transaction
 		if err := evaluateVariableMapping(ctx, instance, element.GetInputMapping()); err != nil {
@@ -34,7 +29,9 @@ func (state *BpmnEngineState) handleServiceTask(ctx context.Context, instance IP
 			}
 			return false
 		}
+		// TODO try to use job name to set fun
 		state.handlers[id](activatedJob)
+
 		if err := evaluateVariableMapping(ctx, instance, element.GetOutputMapping()); err != nil {
 			if err := job.SetState(ctx, activity.Failed, ""); err != nil {
 				return false
@@ -53,7 +50,11 @@ func (state *BpmnEngineState) handleServiceTask(ctx context.Context, instance IP
 	return jobState == activity.Completed
 }
 
-func (state *BpmnEngineState) findOrCreateJob(ctx context.Context, jobs []IJob, id string, instance IProcessInstanceInfo) IJob {
+func findOrCreateJob(ctx context.Context, instance IProcessInstanceInfo, id string) IJob {
+	jobs, err := instance.FindJobs(ctx)
+	if err != nil {
+		jobs = []IJob{}
+	}
 	for _, job := range jobs {
 		if job.GetElementId() == id {
 			return job

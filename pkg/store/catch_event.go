@@ -7,9 +7,9 @@ import (
 )
 
 type catchEvent struct {
-	engineState        bpmn_engine_store.IBpmnEngine
+	engineStore        bpmn_engine_store.IBpmnEngineStore
 	ProcessInstanceKey bpmn_engine_store.IProcessInstanceKey
-	key                bpmn_engine_store.ICatchEventKey
+	ElementInstanceKey bpmn_engine_store.ICatchEventKey
 	name               string
 	caughtAt           time.Time
 	isConsumed         bool
@@ -17,15 +17,15 @@ type catchEvent struct {
 }
 
 func (ce *catchEvent) GetVariables(ctx context.Context) (map[string]interface{}, error) {
-	return ce.engineState.GetStore().GetCatchEventVariables(ctx, ce.ProcessInstanceKey, ce.key)
+	return ce.engineStore.GetCatchEventVariables(ctx, ce.ProcessInstanceKey, ce.ElementInstanceKey)
 }
 
 func (ce *catchEvent) SetConsumed(ctx context.Context, consumed bool) error {
-	return ce.engineState.GetStore().SetCatchEventConsumed(ctx, ce.ProcessInstanceKey, ce.key, consumed)
+	return ce.engineStore.SetCatchEventConsumed(ctx, ce.ProcessInstanceKey, ce.ElementInstanceKey, consumed)
 }
 
 func (ce *catchEvent) GetConsumed(ctx context.Context) (bool, error) {
-	return ce.engineState.GetStore().GetCatchEventConsumed(ctx, ce.ProcessInstanceKey, ce.key)
+	return ce.engineStore.GetCatchEventConsumed(ctx, ce.ProcessInstanceKey, ce.ElementInstanceKey)
 }
 
 func (ce *catchEvent) GetName() string {

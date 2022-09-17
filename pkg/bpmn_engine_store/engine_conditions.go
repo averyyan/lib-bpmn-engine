@@ -1,6 +1,8 @@
 package bpmn_engine_store
 
-import "github.com/nitram509/lib-bpmn-engine/pkg/spec/BPMN20"
+import (
+	"github.com/nitram509/lib-bpmn-engine/pkg/spec/BPMN20"
+)
 
 func exclusivelyFilterByConditionExpression(flows []BPMN20.TSequenceFlow, variableContext map[string]interface{}) ([]BPMN20.TSequenceFlow, error) {
 	var ret []BPMN20.TSequenceFlow

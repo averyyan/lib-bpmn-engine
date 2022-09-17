@@ -8,7 +8,7 @@ import (
 )
 
 type Timer struct {
-	engineState        bpmn_engine_store.IBpmnEngine
+	engineStore        bpmn_engine_store.IBpmnEngineStore
 	ProcessInstanceKey bpmn_engine_store.IProcessInstanceKey
 	ElementInstanceKey bpmn_engine_store.ITimerKey
 	ProcessKey         bpmn_engine_store.IProcessInfoKey
@@ -20,7 +20,7 @@ type Timer struct {
 }
 
 func (timer *Timer) SetState(ctx context.Context, state bpmn_engine.TimerState) error {
-	return timer.engineState.GetStore().SetTimerState(ctx, timer.ProcessInstanceKey, timer.ElementInstanceKey, state)
+	return timer.engineStore.SetTimerState(ctx, timer.ProcessInstanceKey, timer.ElementInstanceKey, state)
 }
 
 func (timer *Timer) GetDueAt() time.Time {
@@ -28,7 +28,7 @@ func (timer *Timer) GetDueAt() time.Time {
 }
 
 func (timer *Timer) GetState(ctx context.Context) (bpmn_engine.TimerState, error) {
-	return timer.engineState.GetStore().GetTimerState(ctx, timer.ProcessInstanceKey, timer.ElementInstanceKey)
+	return timer.engineStore.GetTimerState(ctx, timer.ProcessInstanceKey, timer.ElementInstanceKey)
 }
 
 func (timer *Timer) GetProcessInstanceKey() bpmn_engine_store.IProcessInstanceKey {

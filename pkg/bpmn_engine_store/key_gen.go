@@ -6,6 +6,8 @@ import (
 	"os"
 )
 
+var InitializeSnowflakeIdGenerator = initializeSnowflakeIdGenerator
+
 func (state *BpmnEngineState) generateKey() int64 {
 	return state.snowflake.Generate().Int64()
 }

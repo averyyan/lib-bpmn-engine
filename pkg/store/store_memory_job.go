@@ -9,20 +9,21 @@ import (
 	"time"
 )
 
-func (store *EngineMemoryStore) CreateJob(ctx context.Context, processInstanceInfo bpmn_engine_store.IProcessInstanceInfo, elementId string, elementInstanceKey bpmn_engine_store.IJobKey) (bpmn_engine_store.IJob, error) {
-	if store.jobs[processInstanceInfo.GetInstanceKey()] == nil {
-		store.jobs[processInstanceInfo.GetInstanceKey()] = map[bpmn_engine_store.IJobKey]*job{}
+func (store *EngineMemoryStore) CreateJob(ctx context.Context, engineStore bpmn_engine_store.IBpmnEngineStore, processInstanceKey bpmn_engine_store.IProcessInstanceKey, elementId string, elementInstanceKey bpmn_engine_store.IJobKey) (bpmn_engine_store.IJob, error) {
+	if store.jobs[processInstanceKey] == nil {
+		store.jobs[processInstanceKey] = map[bpmn_engine_store.IJobKey]*job{}
 	}
 	job := &job{
-		ProcessInstanceInfo: processInstanceInfo,
-		ElementId:           elementId,
-		ElementInstanceKey:  elementInstanceKey,
-		JobKey:              int64(elementInstanceKey) + 1,
-		State:               activity.Active,
-		CreatedAt:           time.Now(),
+		engineStore:        engineStore,
+		ProcessInstanceKey: processInstanceKey,
+		ElementId:          elementId,
+		ElementInstanceKey: elementInstanceKey,
+		JobKey:             int64(elementInstanceKey) + 1,
+		State:              activity.Active,
+		CreatedAt:          time.Now(),
 	}
-	store.jobs[processInstanceInfo.GetInstanceKey()][elementInstanceKey] = job
-	return store.jobs[processInstanceInfo.GetInstanceKey()][elementInstanceKey], nil
+	store.jobs[processInstanceKey][elementInstanceKey] = job
+	return store.jobs[processInstanceKey][elementInstanceKey], nil
 }
 
 //func (store *EngineMemoryStore) FindOrCreateJob(ctx context.Context, processInstanceKey bpmn_engine_store.IProcessInstanceKey, elementId bpmn_engine_store.IJobKey, elementInstanceKey int64) (bpmn_engine_store.IJob, error) {

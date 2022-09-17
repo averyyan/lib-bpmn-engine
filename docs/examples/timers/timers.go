@@ -10,7 +10,7 @@ func main() {
 	bpmnEngine := bpmn_engine.New("a name")
 	process, err := bpmnEngine.LoadFromFile("timeout-example.bpmn")
 	if err != nil {
-		panic("file \"timeout-example.bpmn\" can't be read.")
+		panic(any("file \"timeout-example.bpmn\" can't be read."))
 	}
 	// just some dummy handler to complete the tasks/jobs
 	registerDummyTaskHandlers(bpmnEngine)

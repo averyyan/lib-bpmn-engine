@@ -226,6 +226,7 @@ func (state *BpmnEngineState) findIntermediateCatchEventsForContinuation(process
 			}
 		}
 	}
+
 	ice := checkDueTimersAndFindIntermediateCatchEvent(state.timers, process.definitions.Process.IntermediateCatchEvent, instance)
 	if ice != nil {
 		ret = append(ret, ice)

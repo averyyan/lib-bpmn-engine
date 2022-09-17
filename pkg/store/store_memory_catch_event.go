@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/nitram509/lib-bpmn-engine/pkg/bpmn_engine_store"
+	"time"
 )
 
 func (store *EngineMemoryStore) GetCatchEventVariables(ctx context.Context, processInstanceKey bpmn_engine_store.IProcessInstanceKey, catchEventKey bpmn_engine_store.ICatchEventKey) (map[string]interface{}, error) {
@@ -52,6 +53,19 @@ func (store *EngineMemoryStore) SetCatchEventConsumed(ctx context.Context, proce
 	return nil
 }
 
-func (store *EngineMemoryStore) CreateCatchEvent(ctx context.Context, engineState bpmn_engine_store.IBpmnEngine) (bpmn_engine_store.ICatchEvent, error) {
-	panic(any("aaa"))
+func (store *EngineMemoryStore) CreateCatchEvent(ctx context.Context, engineStore bpmn_engine_store.IBpmnEngineStore, processInstanceKey bpmn_engine_store.IProcessInstanceKey, catchEventKey bpmn_engine_store.ICatchEventKey, messageName string, variables map[string]interface{}) (bpmn_engine_store.ICatchEvent, error) {
+	if store.catchEvents[processInstanceKey] == nil {
+		store.catchEvents[processInstanceKey] = map[bpmn_engine_store.ICatchEventKey]*catchEvent{}
+	}
+	event := &catchEvent{
+		engineStore:        engineStore,
+		ProcessInstanceKey: processInstanceKey,
+		ElementInstanceKey: catchEventKey,
+		caughtAt:           time.Now(),
+		name:               messageName,
+		variables:          variables,
+		isConsumed:         false,
+	}
+	store.catchEvents[processInstanceKey][catchEventKey] = event
+	return store.catchEvents[processInstanceKey][catchEventKey], nil
 }

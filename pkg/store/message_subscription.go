@@ -8,7 +8,7 @@ import (
 )
 
 type MessageSubscription struct {
-	engineState        bpmn_engine_store.IBpmnEngine
+	engineStore        bpmn_engine_store.IBpmnEngineStore
 	ElementId          string
 	ElementInstanceKey bpmn_engine_store.IMessageSubscriptionKey
 	ProcessInstanceKey bpmn_engine_store.IProcessInstanceKey
@@ -17,16 +17,20 @@ type MessageSubscription struct {
 	CreatedAt          time.Time
 }
 
+func (ms *MessageSubscription) GetName() string {
+	return ms.Name
+}
+
 func (ms *MessageSubscription) GetProcessInstanceKey() bpmn_engine_store.IProcessInstanceKey {
 	return ms.ProcessInstanceKey
 }
 
 func (ms *MessageSubscription) SetState(ctx context.Context, state activity.LifecycleState) error {
-	return ms.engineState.GetStore().SetMessageSubscriptionState(ctx, ms.ProcessInstanceKey, ms.ElementInstanceKey, state)
+	return ms.engineStore.SetMessageSubscriptionState(ctx, ms.ProcessInstanceKey, ms.ElementInstanceKey, state)
 }
 
 func (ms *MessageSubscription) GetState(ctx context.Context) (activity.LifecycleState, error) {
-	return ms.engineState.GetStore().GetMessageSubscriptionState(ctx, ms.ProcessInstanceKey, ms.ElementInstanceKey)
+	return ms.engineStore.GetMessageSubscriptionState(ctx, ms.ProcessInstanceKey, ms.ElementInstanceKey)
 }
 
 func (ms MessageSubscription) GetElementId() string {

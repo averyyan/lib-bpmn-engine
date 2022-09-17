@@ -10,7 +10,7 @@ import (
 func (state *BpmnEngineState) handleIntermediateTimerCatchEvent(ctx context.Context, instance IProcessInstanceInfo, ice BPMN20.TIntermediateCatchEvent) bool {
 	timer := findExistingTimerNotYetTriggered(ctx, instance, ice.Id)
 	if timer == nil {
-		newTimer, err := state.GetStore().CreateTimer(ctx, state, instance.GetInstanceKey(), ITimerKey(state.generateKey()), ice)
+		newTimer, err := instance.CreateTimer(ctx, ice)
 		if err != nil {
 			return false
 		}
@@ -48,7 +48,12 @@ func findExistingTimerNotYetTriggered(ctx context.Context, instance IProcessInst
 	return t
 }
 
-func checkDueTimersAndFindIntermediateCatchEvent(ctx context.Context, timers []ITimer, intermediateCatchEvents []BPMN20.TIntermediateCatchEvent, instance IProcessInstanceInfo) *BPMN20.BaseElement {
+func checkDueTimersAndFindIntermediateCatchEvent(ctx context.Context, instance IProcessInstanceInfo) *BPMN20.BaseElement {
+	intermediateCatchEvents := instance.GetProcessInfo().GetDefinitions().Process.IntermediateCatchEvent
+	timers, err := instance.FindTimers(ctx)
+	if err != nil {
+		timers = []ITimer{}
+	}
 	for _, timer := range timers {
 		timerState, err := timer.GetState(ctx)
 		if err != nil {

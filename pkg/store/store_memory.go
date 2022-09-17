@@ -72,9 +72,10 @@ func (store *EngineMemoryStore) FindProcessInfo(ctx context.Context, processKey 
 }
 
 func (store *EngineMemoryStore) FindProcessInstanceInfo(ctx context.Context, processInstanceKey bpmn_engine_store.IProcessInstanceKey) (bpmn_engine_store.IProcessInstanceInfo, error) {
-	instances, isExist := store.processInstances[processInstanceKey]
+	instance, isExist := store.processInstances[processInstanceKey]
 	if !isExist {
 		return nil, errors.New(fmt.Sprintf("processInstanceInfo key=%d is not exist", processInstanceKey))
 	}
-	return instances, nil
+	instance.engineStore = store
+	return instance, nil
 }

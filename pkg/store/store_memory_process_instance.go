@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func (store *EngineMemoryStore) CreateProcessInstance(ctx context.Context, engineState bpmn_engine_store.IBpmnEngine, processKey bpmn_engine_store.IProcessInfoKey, processInstanceKey bpmn_engine_store.IProcessInstanceKey, variableContext map[string]interface{}) (bpmn_engine_store.IProcessInstanceInfo, error) {
+func (store *EngineMemoryStore) CreateProcessInstance(ctx context.Context, processKey bpmn_engine_store.IProcessInfoKey, processInstanceKey bpmn_engine_store.IProcessInstanceKey, variableContext map[string]interface{}) (bpmn_engine_store.IProcessInstanceInfo, error) {
 	if variableContext == nil {
 		variableContext = map[string]interface{}{}
 	}
@@ -17,12 +17,14 @@ func (store *EngineMemoryStore) CreateProcessInstance(ctx context.Context, engin
 	if err != nil {
 		return nil, err
 	}
+	snowflakeIdGenerator := bpmn_engine_store.InitializeSnowflakeIdGenerator()
 	processInstanceInfo := &ProcessInstanceInfo{
-		engineState:     engineState,
+		engineStore:     store,
 		processInfo:     process,
 		instanceKey:     processInstanceKey,
 		variableContext: variableContext,
 		createdAt:       time.Now(),
+		snowflake:       snowflakeIdGenerator,
 		state:           process_instance.READY,
 	}
 	store.processInstances[processInstanceInfo.instanceKey] = processInstanceInfo

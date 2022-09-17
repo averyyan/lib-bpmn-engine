@@ -179,7 +179,7 @@ func (e *exporter) NewElementEvent(event *bpmnEngineExporter.ProcessInstanceEven
 func (e *exporter) sendAsRecord(msg proto.Message) error {
 	serializedMessage, err := anypb.New(msg)
 	if err != nil {
-		panic(fmt.Errorf("cannot marshal 'msg' proto message to binary: %w", err))
+		panic(any(fmt.Errorf("cannot marshal 'msg' proto message to binary: %w", err)))
 	}
 
 	record := Record{
@@ -188,7 +188,7 @@ func (e *exporter) sendAsRecord(msg proto.Message) error {
 
 	serializedRecord, err := proto.Marshal(&record)
 	if err != nil {
-		panic(fmt.Errorf("cannot marshal 'record' proto message to binary: %w", err))
+		panic(any(fmt.Errorf("cannot marshal 'record' proto message to binary: %w", err)))
 	}
 
 	return e.hazelcast.SendToRingbuffer(serializedRecord)

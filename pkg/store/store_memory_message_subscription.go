@@ -47,13 +47,16 @@ func (store *EngineMemoryStore) SetMessageSubscriptionState(ctx context.Context,
 
 func (store *EngineMemoryStore) CreateMessageSubscription(
 	ctx context.Context,
-	engineState bpmn_engine_store.IBpmnEngine,
+	engineStore bpmn_engine_store.IBpmnEngineStore,
 	processInstanceKey bpmn_engine_store.IProcessInstanceKey,
 	elementInstanceKey bpmn_engine_store.IMessageSubscriptionKey,
 	ice BPMN20.TIntermediateCatchEvent,
 ) (bpmn_engine_store.IMessageSubscription, error) {
+	if store.messageSubscriptions[processInstanceKey] == nil {
+		store.messageSubscriptions[processInstanceKey] = map[bpmn_engine_store.IMessageSubscriptionKey]*MessageSubscription{}
+	}
 	messageSubscription := &MessageSubscription{
-		engineState:        engineState,
+		engineStore:        engineStore,
 		ElementId:          ice.Id,
 		ElementInstanceKey: elementInstanceKey,
 		ProcessInstanceKey: processInstanceKey,

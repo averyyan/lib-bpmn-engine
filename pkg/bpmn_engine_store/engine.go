@@ -41,7 +41,12 @@ func New(name string, store IBpmnEngineStore) BpmnEngineState {
 // CreateInstance creates a new instance for a process with given processKey
 // will return (nil, nil), when no process with given was found
 func (state *BpmnEngineState) CreateInstance(ctx context.Context, processKey IProcessInfoKey, variableContext map[string]interface{}) (IProcessInstanceInfo, error) {
-	return state.GetStore().CreateProcessInstance(ctx, state, processKey, IProcessInstanceKey(state.generateKey()), variableContext)
+	return state.GetStore().CreateProcessInstance(
+		ctx,
+		processKey,
+		IProcessInstanceKey(state.generateKey()),
+		variableContext,
+	)
 }
 
 func (state *BpmnEngineState) CreateAndRunInstance(ctx context.Context, processKey IProcessInfoKey, variableContext map[string]interface{}) (IProcessInstanceInfo, error) {
@@ -56,16 +61,31 @@ func (state *BpmnEngineState) CreateAndRunInstance(ctx context.Context, processK
 	return instance, err
 }
 
+// RunOrContinueInstance runs or continues a process instance by a given processInstanceKey.
+// returns the process instances, when found
+// does nothing, if process is already in ProcessInstanceCompleted State
+// returns nil, when no process instance was found
+// Additionally, every time this method is called, former completed instances are 'garbage collected'.
+func (state *BpmnEngineState) RunOrContinueInstance(ctx context.Context, processInstanceKey IProcessInstanceKey) (IProcessInstanceInfo, error) {
+	pi, err := state.engineStore.FindProcessInstanceInfo(ctx, processInstanceKey)
+	if err != nil {
+		return nil, err
+	}
+	return pi, state.run(ctx, pi)
+}
+
 func (state *BpmnEngineState) run(ctx context.Context, instance IProcessInstanceInfo) (err error) {
+	var instanceGetStateError error
+	var instanceState process_instance.State
 	type queueElement struct {
 		inboundFlowId string
 		baseElement   BPMN20.BaseElement
 	}
 	queue := make([]queueElement, 0)
 	process := instance.GetProcessInfo()
-	instanceState, err := instance.GetState(ctx)
-	if err != nil {
-		return err
+	instanceState, instanceGetStateError = instance.GetState(ctx)
+	if instanceGetStateError != nil {
+		return instanceGetStateError
 	}
 	switch instanceState {
 	case process_instance.READY:
@@ -80,14 +100,15 @@ func (state *BpmnEngineState) run(ctx context.Context, instance IProcessInstance
 			return err
 		}
 	case process_instance.ACTIVE:
-		userTasks := state.findActiveUserTasksForContinuation(ctx, process, instance)
+
+		userTasks := findActiveUserTasksForContinuation(ctx, instance)
 		for _, userTask := range userTasks {
 			queue = append(queue, queueElement{
 				inboundFlowId: "",
 				baseElement:   *userTask,
 			})
 		}
-		intermediateCatchEvents := state.findIntermediateCatchEventsForContinuation(ctx, process, instance)
+		intermediateCatchEvents := findIntermediateCatchEventsForContinuation(ctx, instance)
 		for _, ice := range intermediateCatchEvents {
 			queue = append(queue, queueElement{
 				inboundFlowId: "",
@@ -107,13 +128,13 @@ func (state *BpmnEngineState) run(ctx context.Context, instance IProcessInstance
 		inboundFlowId := queue[0].inboundFlowId
 		queue = queue[1:]
 
-		continueNextElement := state.handleElement(ctx, process, instance, element)
+		continueNextElement := state.handleElement(ctx, instance, element)
 
 		if continueNextElement {
 			state.exportElementEvent(process, instance, element, exporter.ElementCompleted)
 
 			if inboundFlowId != "" {
-				err := state.GetStore().RemoveScheduledFlow(ctx, instance.GetInstanceKey(), IScheduledFlowKey(inboundFlowId))
+				err := instance.RemoveScheduledFlow(ctx, IScheduledFlowKey(inboundFlowId))
 				if err != nil {
 					return err
 				}
@@ -121,9 +142,9 @@ func (state *BpmnEngineState) run(ctx context.Context, instance IProcessInstance
 			definitions := process.GetDefinitions()
 			nextFlows := BPMN20.FindSequenceFlows(&definitions.Process.SequenceFlows, element.GetOutgoingAssociation())
 			if element.GetType() == BPMN20.ExclusiveGateway {
-				variableContext, err := instance.GetVariableContext(ctx)
-				if err != nil {
-					return err
+				variableContext, getVariableContextErr := instance.GetVariableContext(ctx)
+				if getVariableContextErr != nil {
+					return getVariableContextErr
 				}
 				nextFlows, err = exclusivelyFilterByConditionExpression(nextFlows, variableContext)
 				if err != nil {
@@ -142,14 +163,10 @@ func (state *BpmnEngineState) run(ctx context.Context, instance IProcessInstance
 				//	panic(fmt.Sprintf("Can't find 'sequenceFlow' element with ID=%s. "+
 				//		"This is likely because your BPMN is invalid.", flows[0]))
 				// }
-				if err := state.GetStore().CreateScheduledFlow(
-					ctx,
-					instance.GetInstanceKey(),
-					IScheduledFlowKey(flow.Id),
-				); err != nil {
+
+				if err := instance.CreateScheduledFlow(ctx, IScheduledFlowKey(flow.Id)); err != nil {
 					return err
 				}
-
 				baseElements := BPMN20.FindBaseElementsById(process.GetDefinitions(), flow.TargetRef)
 				// TODO: create test for that
 				// if len(baseElements) < 1 {
@@ -165,21 +182,22 @@ func (state *BpmnEngineState) run(ctx context.Context, instance IProcessInstance
 			}
 		}
 	}
-	instanceStateIn, err := instance.GetState(ctx)
-	if err != nil {
-		return err
+	instanceState, instanceGetStateError = instance.GetState(ctx)
+	if instanceGetStateError != nil {
+		return instanceGetStateError
 	}
-	if instanceStateIn == process_instance.COMPLETED || instanceStateIn == process_instance.FAILED {
+	if instanceState == process_instance.COMPLETED || instanceState == process_instance.FAILED {
 		// TODO need to send failed state
 		state.exportEndProcessEvent(process, instance)
 	}
-
 	return err
 }
 
-func (state *BpmnEngineState) handleElement(ctx context.Context, process IProcessInfo, instance IProcessInstanceInfo, element BPMN20.BaseElement) bool {
+func (state *BpmnEngineState) handleElement(ctx context.Context, instance IProcessInstanceInfo, element BPMN20.BaseElement) bool {
+	process := instance.GetProcessInfo()
 
 	state.exportElementEvent(process, instance, element, exporter.ElementActivated)
+
 	switch element.GetType() {
 	case BPMN20.StartEvent:
 		return true
@@ -220,9 +238,10 @@ func (state *BpmnEngineState) handleIntermediateCatchEvent(ctx context.Context, 
 
 func (state *BpmnEngineState) handleEndEvent(ctx context.Context, instance IProcessInstanceInfo) {
 	completedJobs := true
-	jobs, err := state.GetStore().FindJobs(ctx, instance.GetInstanceKey())
+	jobs, err := instance.FindJobs(ctx)
+	// TODO if this is db err must stop the process
 	if err != nil {
-		return
+		jobs = []IJob{}
 	}
 	for _, job := range jobs {
 		jobState, err := job.GetState(ctx)
@@ -234,17 +253,17 @@ func (state *BpmnEngineState) handleEndEvent(ctx context.Context, instance IProc
 			break
 		}
 	}
-	if completedJobs && !state.hasActiveSubscriptions(ctx, instance) {
+	if completedJobs && !hasActiveSubscriptions(ctx, instance) {
 		if err := instance.SetState(ctx, process_instance.COMPLETED); err != nil {
 			return
 		}
 	}
 }
 
-func (state *BpmnEngineState) hasActiveSubscriptions(ctx context.Context, instance IProcessInstanceInfo) bool {
+func hasActiveSubscriptions(ctx context.Context, instance IProcessInstanceInfo) bool {
 	process := instance.GetProcessInfo()
 	activeSubscriptions := map[string]bool{}
-	subscriptions, err := state.GetStore().FindMessageSubscriptions(ctx, instance.GetInstanceKey())
+	subscriptions, err := instance.FindMessageSubscriptions(ctx)
 	if err != nil {
 		return false
 	}
@@ -279,7 +298,7 @@ func (state *BpmnEngineState) handleParallelGateway(ctx context.Context, instanc
 	// check incoming flows, if ready, then continue
 	allInboundsAreScheduled := true
 	for _, inFlowId := range element.GetIncomingAssociation() {
-		isExistFlow, err := state.GetStore().IsExistScheduledFlow(ctx, instance.GetInstanceKey(), IScheduledFlowKey(inFlowId))
+		isExistFlow, err := instance.IsExistScheduledFlow(ctx, IScheduledFlowKey(inFlowId))
 		if err != nil {
 			return false
 		}
@@ -288,9 +307,10 @@ func (state *BpmnEngineState) handleParallelGateway(ctx context.Context, instanc
 	return allInboundsAreScheduled
 }
 
-func (state *BpmnEngineState) findActiveUserTasksForContinuation(ctx context.Context, process IProcessInfo, instance IProcessInstanceInfo) (ret []*BPMN20.BaseElement) {
+func findActiveUserTasksForContinuation(ctx context.Context, instance IProcessInstanceInfo) (ret []*BPMN20.BaseElement) {
+	process := instance.GetProcessInfo()
 	for _, userTask := range process.GetDefinitions().Process.UserTasks {
-		jobs, err := state.GetStore().FindJobs(ctx, instance.GetInstanceKey())
+		jobs, err := instance.FindJobs(ctx)
 		if err != nil {
 			return nil
 		}
@@ -309,7 +329,8 @@ func (state *BpmnEngineState) findActiveUserTasksForContinuation(ctx context.Con
 	return ret
 }
 
-func (state *BpmnEngineState) findIntermediateCatchEventsForContinuation(ctx context.Context, process IProcessInfo, instance IProcessInstanceInfo) (ret []*BPMN20.BaseElement) {
+func findIntermediateCatchEventsForContinuation(ctx context.Context, instance IProcessInstanceInfo) (ret []*BPMN20.BaseElement) {
+	process := instance.GetProcessInfo()
 	messageRef2IntermediateCatchEventMapping := map[string]BPMN20.BaseElement{}
 	for _, ice := range process.GetDefinitions().Process.IntermediateCatchEvent {
 		messageRef2IntermediateCatchEventMapping[ice.MessageEventDefinition.MessageRef] = ice
@@ -332,25 +353,22 @@ func (state *BpmnEngineState) findIntermediateCatchEventsForContinuation(ctx con
 			if msg.Name == caughtEvent.GetName() {
 				// find potential event definitions
 				event := messageRef2IntermediateCatchEventMapping[msg.Id]
-				if state.hasActiveMessageSubscriptionForId(ctx, instance, event.GetId()) {
+				if hasActiveMessageSubscriptionForId(ctx, instance, event.GetId()) {
 					ret = append(ret, &event)
 				}
 			}
 		}
 	}
-	timers, err := state.GetStore().FindTimers(ctx, instance.GetInstanceKey())
-	if err != nil {
-		return nil
-	}
-	ice := checkDueTimersAndFindIntermediateCatchEvent(ctx, timers, process.GetDefinitions().Process.IntermediateCatchEvent, instance)
+	ice := checkDueTimersAndFindIntermediateCatchEvent(ctx, instance)
 	if ice != nil {
 		ret = append(ret, ice)
 	}
 	return eliminateEventsWhichComeFromTheSameGateway(process.GetDefinitions(), ret)
 }
 
-func (state *BpmnEngineState) hasActiveMessageSubscriptionForId(ctx context.Context, instance IProcessInstanceInfo, id string) bool {
-	messageSubscriptions, err := state.GetStore().FindMessageSubscriptions(ctx, instance.GetInstanceKey())
+func hasActiveMessageSubscriptionForId(ctx context.Context, instance IProcessInstanceInfo, id string) bool {
+	messageSubscriptions, err := instance.FindMessageSubscriptions(ctx)
+
 	if err != nil {
 		return false
 	}
@@ -381,6 +399,7 @@ func eliminateEventsWhichComeFromTheSameGateway(definitions BPMN20.TDefinitions,
 			}
 		}
 	}
+
 	return ret
 }
 
