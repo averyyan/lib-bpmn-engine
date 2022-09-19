@@ -27,25 +27,25 @@ type IBpmnEngineStore interface {
 	FindJobs(ctx context.Context, processInstanceKey IProcessInstanceKey) ([]IJob, error)
 	FindJob(ctx context.Context, processInstanceKey IProcessInstanceKey, jobKey IJobKey) (IJob, error)
 
-	CreateJob(ctx context.Context, engineStore IBpmnEngineStore, processInstanceKey IProcessInstanceKey, elementId string, elementInstanceKey IJobKey) (IJob, error)
+	CreateJob(ctx context.Context, processInstanceKey IProcessInstanceKey, elementId string, elementInstanceKey IJobKey) (IJob, error)
 
 	GetJobState(ctx context.Context, processInstanceKey IProcessInstanceKey, jobKey IJobKey) (activity.LifecycleState, error)
 	SetJobState(ctx context.Context, processInstanceKey IProcessInstanceKey, jobKey IJobKey, state activity.LifecycleState, reason string) error
 
 	CreateActivatedJob(job IJob) IActivatedJob
 
-	CreateCatchEvent(ctx context.Context, engineStore IBpmnEngineStore, processInstanceKey IProcessInstanceKey, catchEventKey ICatchEventKey, messageName string, variables map[string]interface{}) (ICatchEvent, error)
+	CreateCatchEvent(ctx context.Context, processInstanceKey IProcessInstanceKey, catchEventKey ICatchEventKey, messageName string, variables map[string]interface{}) (ICatchEvent, error)
 	SetCatchEventConsumed(ctx context.Context, processInstanceKey IProcessInstanceKey, catchEventKey ICatchEventKey, consumed bool) error
 	GetCatchEventConsumed(ctx context.Context, processInstanceKey IProcessInstanceKey, catchEventKey ICatchEventKey) (bool, error)
 	GetCatchEventVariables(ctx context.Context, processInstanceKey IProcessInstanceKey, catchEventKey ICatchEventKey) (map[string]interface{}, error)
 	FindCatchEvents(ctx context.Context, processInstanceKey IProcessInstanceKey) ([]ICatchEvent, error)
 
-	CreateMessageSubscription(ctx context.Context, engineStore IBpmnEngineStore, processInstanceKey IProcessInstanceKey, elementInstanceKey IMessageSubscriptionKey, ice BPMN20.TIntermediateCatchEvent) (IMessageSubscription, error)
+	CreateMessageSubscription(ctx context.Context, processInstanceKey IProcessInstanceKey, elementInstanceKey IMessageSubscriptionKey, ice BPMN20.TIntermediateCatchEvent) (IMessageSubscription, error)
 	FindMessageSubscriptions(ctx context.Context, processInstanceKey IProcessInstanceKey) ([]IMessageSubscription, error)
 	GetMessageSubscriptionState(ctx context.Context, processInstanceKey IProcessInstanceKey, messageSubscriptionKey IMessageSubscriptionKey) (activity.LifecycleState, error)
 	SetMessageSubscriptionState(ctx context.Context, processInstanceKey IProcessInstanceKey, messageSubscriptionKey IMessageSubscriptionKey, state activity.LifecycleState) error
 
-	CreateTimer(ctx context.Context, engineStore IBpmnEngineStore, processInstanceKey IProcessInstanceKey, timerKey ITimerKey, ice BPMN20.TIntermediateCatchEvent) (ITimer, error)
+	CreateTimer(ctx context.Context, processInstanceKey IProcessInstanceKey, timerKey ITimerKey, ice BPMN20.TIntermediateCatchEvent) (ITimer, error)
 	FindTimers(ctx context.Context, processInstanceKey IProcessInstanceKey) ([]ITimer, error)
 	GetTimerState(ctx context.Context, processInstanceKey IProcessInstanceKey, timerKey ITimerKey) (bpmn_engine.TimerState, error)
 	SetTimerState(ctx context.Context, processInstanceKey IProcessInstanceKey, timerKey ITimerKey, state bpmn_engine.TimerState) error

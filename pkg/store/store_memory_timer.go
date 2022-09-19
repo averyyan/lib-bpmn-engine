@@ -12,7 +12,6 @@ import (
 
 func (store *EngineMemoryStore) CreateTimer(
 	ctx context.Context,
-	engineStore bpmn_engine_store.IBpmnEngineStore,
 	processInstanceKey bpmn_engine_store.IProcessInstanceKey,
 	timerKey bpmn_engine_store.ITimerKey,
 	ice BPMN20.TIntermediateCatchEvent,
@@ -26,7 +25,7 @@ func (store *EngineMemoryStore) CreateTimer(
 		return nil, err
 	}
 	timer := &Timer{
-		engineStore:        engineStore,
+		engineStore:        store,
 		ElementId:          ice.Id,
 		ElementInstanceKey: timerKey,
 		ProcessInstanceKey: processInstanceKey,

@@ -24,15 +24,15 @@ type ProcessInstanceInfo struct {
 }
 
 func (instance *ProcessInstanceInfo) CreateCatchEvent(ctx context.Context, messageName string, variables map[string]interface{}) (bpmn_engine_store.ICatchEvent, error) {
-	return instance.engineStore.CreateCatchEvent(ctx, instance.engineStore, instance.instanceKey, bpmn_engine_store.ICatchEventKey(instance.GenerateKey()), messageName, variables)
+	return instance.engineStore.CreateCatchEvent(ctx, instance.instanceKey, bpmn_engine_store.ICatchEventKey(instance.GenerateKey()), messageName, variables)
 }
 
 func (instance *ProcessInstanceInfo) CreateTimer(ctx context.Context, ice BPMN20.TIntermediateCatchEvent) (bpmn_engine_store.ITimer, error) {
-	return instance.engineStore.CreateTimer(ctx, instance.engineStore, instance.instanceKey, bpmn_engine_store.ITimerKey(instance.GenerateKey()), ice)
+	return instance.engineStore.CreateTimer(ctx, instance.instanceKey, bpmn_engine_store.ITimerKey(instance.GenerateKey()), ice)
 }
 
 func (instance *ProcessInstanceInfo) CreateMessageSubscription(ctx context.Context, ice BPMN20.TIntermediateCatchEvent) (bpmn_engine_store.IMessageSubscription, error) {
-	return instance.engineStore.CreateMessageSubscription(ctx, instance.engineStore, instance.instanceKey, bpmn_engine_store.IMessageSubscriptionKey(instance.GenerateKey()), ice)
+	return instance.engineStore.CreateMessageSubscription(ctx, instance.instanceKey, bpmn_engine_store.IMessageSubscriptionKey(instance.GenerateKey()), ice)
 }
 
 func (instance *ProcessInstanceInfo) RemoveScheduledFlow(ctx context.Context, flowId bpmn_engine_store.IScheduledFlowKey) error {
@@ -60,7 +60,7 @@ func (instance *ProcessInstanceInfo) GetVariable(ctx context.Context, key string
 }
 
 func (instance *ProcessInstanceInfo) CreateJob(ctx context.Context, elementId string) (bpmn_engine_store.IJob, error) {
-	return instance.engineStore.CreateJob(ctx, instance.engineStore, instance.instanceKey, elementId, bpmn_engine_store.IJobKey(instance.GenerateKey()))
+	return instance.engineStore.CreateJob(ctx, instance.instanceKey, elementId, bpmn_engine_store.IJobKey(instance.GenerateKey()))
 }
 
 func (instance *ProcessInstanceInfo) GetJobState(ctx context.Context, jobKey bpmn_engine_store.IJobKey) (activity.LifecycleState, error) {

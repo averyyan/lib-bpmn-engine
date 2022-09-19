@@ -9,12 +9,12 @@ import (
 	"time"
 )
 
-func (store *EngineMemoryStore) CreateJob(ctx context.Context, engineStore bpmn_engine_store.IBpmnEngineStore, processInstanceKey bpmn_engine_store.IProcessInstanceKey, elementId string, elementInstanceKey bpmn_engine_store.IJobKey) (bpmn_engine_store.IJob, error) {
+func (store *EngineMemoryStore) CreateJob(ctx context.Context, processInstanceKey bpmn_engine_store.IProcessInstanceKey, elementId string, elementInstanceKey bpmn_engine_store.IJobKey) (bpmn_engine_store.IJob, error) {
 	if store.jobs[processInstanceKey] == nil {
 		store.jobs[processInstanceKey] = map[bpmn_engine_store.IJobKey]*job{}
 	}
 	job := &job{
-		engineStore:        engineStore,
+		engineStore:        store,
 		ProcessInstanceKey: processInstanceKey,
 		ElementId:          elementId,
 		ElementInstanceKey: elementInstanceKey,

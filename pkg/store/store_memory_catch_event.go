@@ -53,12 +53,12 @@ func (store *EngineMemoryStore) SetCatchEventConsumed(ctx context.Context, proce
 	return nil
 }
 
-func (store *EngineMemoryStore) CreateCatchEvent(ctx context.Context, engineStore bpmn_engine_store.IBpmnEngineStore, processInstanceKey bpmn_engine_store.IProcessInstanceKey, catchEventKey bpmn_engine_store.ICatchEventKey, messageName string, variables map[string]interface{}) (bpmn_engine_store.ICatchEvent, error) {
+func (store *EngineMemoryStore) CreateCatchEvent(ctx context.Context, processInstanceKey bpmn_engine_store.IProcessInstanceKey, catchEventKey bpmn_engine_store.ICatchEventKey, messageName string, variables map[string]interface{}) (bpmn_engine_store.ICatchEvent, error) {
 	if store.catchEvents[processInstanceKey] == nil {
 		store.catchEvents[processInstanceKey] = map[bpmn_engine_store.ICatchEventKey]*catchEvent{}
 	}
 	event := &catchEvent{
-		engineStore:        engineStore,
+		engineStore:        store,
 		ProcessInstanceKey: processInstanceKey,
 		ElementInstanceKey: catchEventKey,
 		caughtAt:           time.Now(),
